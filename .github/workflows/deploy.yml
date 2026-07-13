@@ -36,8 +36,31 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Deploy to Cloud Run
+        id: deploy
         env:
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           GCP_REGION: ${{ vars.GCP_REGION || 'europe-west1' }}
           SERVICE_NAME: ${{ vars.SERVICE_NAME || 'sofia-data-mcp' }}
         run: ./deploy/gcp/deploy-cloud-run.sh
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Prepare pnpm
+        run: corepack prepare pnpm@10.8.1 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build e2e package
+        run: pnpm --filter @sofia-data/e2e build
+
+      - name: Run post-deploy e2e smoke test
+        env:
+          E2E_BASE_URL: ${{ steps.deploy.outputs.service_url }}
+        run: pnpm test:e2e

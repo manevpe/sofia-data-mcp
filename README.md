@@ -148,6 +148,22 @@ Build and run with Docker Compose:
 docker compose up --build
 ```
 
+## End-to-End Tests
+
+`packages/e2e` runs a full black-box smoke test against a *deployed*
+instance (health check, MCP `initialize` handshake, `listTools`, and a real
+`search_datasets` call) — distinct from `packages/http-server`'s unit tests,
+which spin up a local in-process server. It's skipped automatically (not
+failed) when no target is given, so it never affects normal `pnpm test`/CI:
+
+```bash
+E2E_BASE_URL=https://sofia-data-mcp-423850425424.europe-west1.run.app pnpm test:e2e
+```
+
+This also runs automatically as a post-deploy gate in
+`.github/workflows/deploy.yml`, against the URL of the revision that was
+just deployed.
+
 ## Deploying to Google Cloud Run
 
 See [`deploy/gcp/README.md`](deploy/gcp/README.md) for scripts that deploy

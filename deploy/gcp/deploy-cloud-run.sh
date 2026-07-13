@@ -64,7 +64,15 @@ gcloud run deploy "$SERVICE_NAME" \
   --concurrency 20 \
   --set-env-vars "SOFIA_CKAN_BASE_URL=https://urbandata.sofia.bg,HOST=0.0.0.0,MCP_HTTP_PATH=/mcp,REQUEST_TIMEOUT_MS=30000,PREVIEW_MAX_BYTES=262144,MAX_SEARCH_RESULTS=50,CACHE_TTL_MS=300000,ALLOWED_HOSTS=${ALLOWED_HOSTS},ALLOWED_ORIGINS=${ALLOWED_ORIGINS}"
 
-echo "==> Done. Service URL:"
-gcloud run services describe "$SERVICE_NAME" \
+SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" \
   --project "$PROJECT_ID" --region "$REGION" \
-  --format 'value(status.url)'
+  --format 'value(status.url)')
+
+echo "==> Done. Service URL:"
+echo "$SERVICE_URL"
+
+# Expose the URL to subsequent GitHub Actions steps (e.g. a post-deploy e2e
+# smoke test), if running in that context. No-op locally.
+if [ -n "${GITHUB_OUTPUT:-}" ]; then
+  echo "service_url=$SERVICE_URL" >> "$GITHUB_OUTPUT"
+fi
