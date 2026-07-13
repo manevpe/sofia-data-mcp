@@ -1,10 +1,9 @@
 name: Dependabot auto-merge
 
-# Automatically approves and enables auto-merge for Dependabot PRs that are
-# patch or minor version bumps. Auto-merge only completes once the CI
+# Automatically approves and enables auto-merge for all Dependabot PRs,
+# including major version bumps. Auto-merge only completes once the CI
 # workflow's "build-and-test" check succeeds, since that check is required
-# by main's branch protection rules. Major version bumps are left alone for
-# manual review.
+# by main's branch protection rules.
 on: pull_request
 
 permissions:
@@ -22,10 +21,7 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Approve and enable auto-merge for patch/minor updates
-        if: |
-          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
-          steps.metadata.outputs.update-type == 'version-update:semver-minor'
+      - name: Approve and enable auto-merge
         run: |
           gh pr review --approve "$PR_URL"
           gh pr merge --auto --squash "$PR_URL"
