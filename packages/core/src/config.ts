@@ -24,7 +24,13 @@ export function getHttpServerConfig(env: NodeJS.ProcessEnv = process.env) {
   return {
     host: env.HOST ?? "127.0.0.1",
     port: toNumber(env.PORT, 3000),
-    mcpPath: env.MCP_HTTP_PATH ?? DEFAULT_HTTP_PATH
+    mcpPath: env.MCP_HTTP_PATH ?? DEFAULT_HTTP_PATH,
+    // Comma-separated additional hostnames/origins allowed to reach the MCP
+    // endpoint, e.g. a deployed Cloud Run hostname. Defaults to none, so a
+    // fresh local deployment stays locked to localhost/127.0.0.1 unless
+    // explicitly opened up.
+    allowedHosts: parseCommaList(env.ALLOWED_HOSTS),
+    allowedOrigins: parseCommaList(env.ALLOWED_ORIGINS)
   };
 }
 
@@ -49,4 +55,15 @@ function toNumber(value: string | undefined, fallback: number) {
 
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function parseCommaList(value: string | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
 }

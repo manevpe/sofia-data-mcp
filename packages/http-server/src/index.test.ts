@@ -118,3 +118,36 @@ test("GET /health without an origin omits CORS headers", async () => {
     assert.equal(response.headers.get("access-control-allow-origin"), null);
   });
 });
+
+test("ALLOWED_HOSTS/ALLOWED_ORIGINS env vars extend the default localhost allowlist", async () => {
+  const extendedServerConfig = getHttpServerConfig({
+    HOST: "127.0.0.1",
+    PORT: "0",
+    MCP_HTTP_PATH: "/mcp",
+    ALLOWED_HOSTS: "sofia-data-mcp.example.run.app",
+    ALLOWED_ORIGINS: "sofia-data-mcp.example.run.app"
+  } as NodeJS.ProcessEnv);
+
+  const server = createServer(createRequestListener(testCoreConfig, extendedServerConfig));
+  await new Promise<void>((resolve, reject) => {
+    server.listen(0, extendedServerConfig.host, () => resolve());
+    server.once("error", reject);
+  });
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  const baseUrl = `http://${extendedServerConfig.host}:${String(address.port)}`;
+
+  try {
+    const origin = "https://sofia-data-mcp.example.run.app";
+    const response = await fetch(`${baseUrl}/health`, {
+      headers: { Origin: origin }
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("access-control-allow-origin"), origin);
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
+});

@@ -96,6 +96,7 @@ Key values:
 - `PREVIEW_MAX_BYTES=262144`
 - `MAX_SEARCH_RESULTS=50`
 - `CACHE_TTL_MS=300000` — in-memory TTL cache for CKAN reads (groups, organizations, search results, dataset lookups). Set to `0` to disable caching.
+- `ALLOWED_HOSTS` / `ALLOWED_ORIGINS` — comma-separated extra hostnames/origins (beyond `127.0.0.1`/`localhost`) allowed to reach the MCP endpoint. Required when deploying publicly (e.g. Cloud Run) so the server's own DNS-rebinding/CORS protection doesn't reject requests to its own public hostname. Left unset, the server only accepts local traffic.
 - `MCP_UPSTREAM_URL`
 - `MCP_SERVER_URL`
 

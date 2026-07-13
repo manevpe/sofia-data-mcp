@@ -15,11 +15,13 @@ export function createRequestListener(coreConfig: CoreConfig, serverConfig: Http
     "127.0.0.1",
     "localhost",
     `127.0.0.1:${String(serverConfig.port)}`,
-    `localhost:${String(serverConfig.port)}`
+    `localhost:${String(serverConfig.port)}`,
+    ...serverConfig.allowedHosts
   ];
+  const allowedOriginHostnames = ["127.0.0.1", "localhost", ...serverConfig.allowedOrigins];
 
   return async (req: IncomingMessage, res: ServerResponse) => {
-    const corsHeaders = getCorsHeaders(req.headers.origin);
+    const corsHeaders = getCorsHeaders(req.headers.origin, allowedOriginHostnames);
     applyCorsHeaders(res, corsHeaders);
 
     if (!req.url) {
@@ -51,7 +53,7 @@ export function createRequestListener(coreConfig: CoreConfig, serverConfig: Http
     }
 
     const origin = req.headers.origin;
-    if (origin && !isAllowedOrigin(origin)) {
+    if (origin && !isAllowedOrigin(origin, allowedOriginHostnames)) {
       res.writeHead(403).end("Forbidden origin");
       return;
     }
@@ -112,21 +114,21 @@ function createMcpServer(coreConfig: CoreConfig) {
   return server;
 }
 
-function isAllowedOrigin(origin: string) {
+function isAllowedOrigin(origin: string, allowedOriginHostnames: string[]) {
   if (origin === "null") {
     return true;
   }
 
   try {
     const parsed = new URL(origin);
-    return ["127.0.0.1", "localhost"].includes(parsed.hostname);
+    return allowedOriginHostnames.includes(parsed.hostname);
   } catch {
     return false;
   }
 }
 
-function getCorsHeaders(origin: string | undefined) {
-  if (!origin || !isAllowedOrigin(origin)) {
+function getCorsHeaders(origin: string | undefined, allowedOriginHostnames: string[]) {
+  if (!origin || !isAllowedOrigin(origin, allowedOriginHostnames)) {
     return undefined;
   }
 
