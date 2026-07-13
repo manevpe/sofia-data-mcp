@@ -9,6 +9,79 @@ TypeScript MCP server, `stdio` bridge, and CLI client for the Sofia municipality
 - Local default endpoint: `http://127.0.0.1:3000/mcp`
 - Source portal integration: CKAN Action API
 
+## Connect an MCP Client
+
+The deployed server is public, requires no auth, and speaks Streamable HTTP
+at:
+
+```text
+https://sofia-data-mcp-423850425424.europe-west1.run.app/mcp
+```
+
+### Clients with native remote/HTTP MCP support (recommended)
+
+**VS Code (Copilot Chat)** — add to `.vscode/mcp.json` in your project (or
+your user `mcp.json` via the MCP: Open User Configuration command):
+
+```json
+{
+  "servers": {
+    "sofia-data": {
+      "type": "http",
+      "url": "https://sofia-data-mcp-423850425424.europe-west1.run.app/mcp"
+    }
+  }
+}
+```
+
+**Cursor** — add to `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "sofia-data": {
+      "url": "https://sofia-data-mcp-423850425424.europe-west1.run.app/mcp"
+    }
+  }
+}
+```
+
+### Clients that only support local `stdio` servers (e.g. Claude Desktop)
+
+Claude Desktop's `claude_desktop_config.json` only launches local processes,
+so bridge to the remote HTTP endpoint with the widely-used `mcp-remote`
+adapter (no install/build required, runs via `npx`):
+
+```json
+{
+  "mcpServers": {
+    "sofia-data": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://sofia-data-mcp-423850425424.europe-west1.run.app/mcp"
+      ]
+    }
+  }
+}
+```
+
+Alternatively, this repo's own `@sofia-data/stdio-bridge` package works the
+same way — point it at the deployed URL instead of running the server
+locally:
+
+```bash
+pnpm --filter @sofia-data/stdio-bridge dev -- \
+  --upstream-url https://sofia-data-mcp-423850425424.europe-west1.run.app/mcp
+```
+
+### Quick smoke test (no client needed)
+
+```bash
+curl -s https://sofia-data-mcp-423850425424.europe-west1.run.app/health
+```
+
 ## Packages
 
 - `@sofia-data/core`: shared CKAN client, normalization, analytics, and MCP tool definitions
