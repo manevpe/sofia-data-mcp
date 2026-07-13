@@ -42,12 +42,13 @@ echo "==> Creating Pub/Sub topic for budget notifications (idempotent)"
 gcloud pubsub topics create "$TOPIC_NAME" --project "$PROJECT_ID" 2>/dev/null || \
   echo "    Topic already exists, continuing."
 
-# The billing account's own service agent is what actually publishes budget
-# notification messages, not your user account — it needs explicit publish
-# rights on the topic or notifications will silently fail to be delivered.
-BILLING_ACCOUNT_NUMBER="${BILLING_ACCOUNT_ID//-/}"
-BILLING_SERVICE_AGENT="service-${BILLING_ACCOUNT_NUMBER}@gcp-sa-cloudbilling.iam.gserviceaccount.com"
-echo "==> Granting billing service agent (${BILLING_SERVICE_AGENT}) publish rights on the topic"
+# Cloud Billing Budgets publishes notification messages using a single,
+# fixed Google-managed system service account (the same for every GCP
+# customer) — not an account derived from your specific billing account
+# number. It needs explicit publish rights on the topic or notifications
+# will silently fail to be delivered.
+BILLING_SERVICE_AGENT="cloud-billing-budgets@system.gserviceaccount.com"
+echo "==> Granting the Cloud Billing Budgets service agent (${BILLING_SERVICE_AGENT}) publish rights on the topic"
 gcloud pubsub topics add-iam-policy-binding "$TOPIC_NAME" \
   --project "$PROJECT_ID" \
   --member "serviceAccount:${BILLING_SERVICE_AGENT}" \
