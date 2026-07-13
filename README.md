@@ -75,6 +75,13 @@ Build and run with Docker Compose:
 docker compose up --build
 ```
 
+## Deploying to Google Cloud Run
+
+See [`deploy/gcp/README.md`](deploy/gcp/README.md) for scripts that deploy
+`http-server` to Cloud Run (capped at 1 instance) with an automated budget
+kill-switch that scales the service to zero if spend reaches a configured
+threshold (default $2).
+
 ## Environment Variables
 
 Copy `.env.example` and adjust as needed.
