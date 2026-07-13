@@ -1,9 +1,9 @@
 name: Dependabot auto-merge
 
-# Automatically approves and enables auto-merge for all Dependabot PRs,
-# including major version bumps. Auto-merge only completes once the CI
-# workflow's "build-and-test" check succeeds, since that check is required
-# by main's branch protection rules.
+# Automatically enables auto-merge for all Dependabot PRs, including major
+# version bumps. Auto-merge only completes once the CI workflow's
+# "build-and-test" and "e2e" checks succeed, since those are required by
+# main's branch protection rules (no PR review approval is required).
 on: pull_request
 
 permissions:
@@ -21,10 +21,8 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Approve and enable auto-merge
-        run: |
-          gh pr review --approve "$PR_URL"
-          gh pr merge --auto --squash "$PR_URL"
+      - name: Enable auto-merge
+        run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
