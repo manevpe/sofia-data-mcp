@@ -69,11 +69,49 @@ export GCP_PROJECT_ID=my-project
 ./deploy/gcp/restore-service.sh
 ```
 
+## 4. Automated deploys via GitHub Actions
+
+Deploys run from `.github/workflows/deploy.yml`, triggered automatically once
+the `CI` workflow succeeds on `main` (build/typecheck/test must pass first),
+or manually via "Run workflow" in the Actions tab. It authenticates to GCP
+using **Workload Identity Federation** — no service account JSON key is ever
+stored in GitHub.
+
+One-time setup:
+
+```bash
+export GCP_PROJECT_ID=my-project
+./deploy/gcp/setup-workload-identity.sh
+```
+
+This creates a Workload Identity Pool + OIDC provider trusting GitHub's
+token issuer (restricted to the `manevpe/sofia-data-mcp` repo only), a
+dedicated deploy service account with the minimum roles (`run.admin`,
+`cloudbuild.builds.editor`, `iam.serviceAccountUser`, `storage.admin`), and
+an IAM binding letting that repo's workflows impersonate the service
+account — but only via short-lived tokens minted per workflow run.
+
+Then add the three values it prints as **GitHub Actions secrets**
+(Settings → Secrets and variables → Actions → New repository secret):
+
+- `GCP_PROJECT_ID`
+- `GCP_WORKLOAD_IDENTITY_PROVIDER`
+- `GCP_DEPLOY_SERVICE_ACCOUNT`
+
+Optionally set repo **variables** `GCP_REGION` / `SERVICE_NAME` if you want
+values other than the defaults (`europe-west1` / `sofia-data-mcp`).
+
+The budget-guard setup (`setup-budget-guard.sh`) is separate and only needs
+to be run once manually — it isn't part of the CI/CD pipeline since it
+provisions billing-account-level resources.
+
 ## Files
 
 | File | Purpose |
 |---|---|
-| `deploy-cloud-run.sh` | Builds and deploys the service to Cloud Run with cost-safety flags. |
+| `deploy-cloud-run.sh` | Builds and deploys the service to Cloud Run with cost-safety flags. Used both locally and by the GitHub Actions deploy workflow. |
+| `setup-workload-identity.sh` | One-time setup of Workload Identity Federation so GitHub Actions can deploy without any long-lived key. |
 | `setup-budget-guard.sh` | One-time setup of the Pub/Sub topic, IAM bindings, Cloud Function, and billing budget. |
 | `budget-guard/index.js` | The Cloud Function source: reads budget notifications, scales Cloud Run to zero on overage. |
 | `restore-service.sh` | Re-enables the service (sets `max-instances` back to 1) after a shutdown. |
+| `../../.github/workflows/deploy.yml` | GitHub Actions workflow: deploys to Cloud Run after CI passes on `main`, or on manual dispatch. |
