@@ -32,22 +32,31 @@ echo "==> Enabling required APIs (idempotent)"
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com cloudresourcemanager.googleapis.com \
   --project "$PROJECT_ID"
 
-# Cloud Run's stable, predictable hostname is
-# "<service>-<project-number>.<region>.run.app" (as opposed to the
-# randomized "*.a.run.app" alias it also assigns). Computing it up front
-# lets us include it in ALLOWED_HOSTS/ALLOWED_ORIGINS on the very first
-# deploy, so the app's own DNS-rebinding/CORS protection doesn't reject
-# requests sent to its own public URL.
-PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format 'value(projectNumber)')
-PREDICTABLE_HOST="${SERVICE_NAME}-${PROJECT_NUMBER}.${REGION}.run.app"
+# The app's own DNS-rebinding/CORS protection needs to allowlist the exact
+# hostname Cloud Run assigns this service, so requests to its own public URL
+# aren't rejected. That hostname is NOT the "<service>-<project-number>.
+# <region>.run.app" form one might expect from older Cloud Run docs -- this
+# project's region/generation assigns a hashed alias instead (e.g.
+# "<service>-<hash>-<region-code>.a.run.app"), so it must be read back from
+# an existing deployment rather than constructed. On the very first deploy
+# (service doesn't exist yet) this is empty; we patch it in with a follow-up
+# `services update` once the real hostname is known, further down.
+EXISTING_SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" \
+  --project "$PROJECT_ID" --region "$REGION" \
+  --format 'value(status.url)' 2>/dev/null || echo "")
 
-ALLOWED_HOSTS="$PREDICTABLE_HOST"
-ALLOWED_ORIGINS="https://${PREDICTABLE_HOST}"
+ALLOWED_HOSTS=""
+ALLOWED_ORIGINS=""
+if [[ -n "$EXISTING_SERVICE_URL" ]]; then
+  EXISTING_HOST="${EXISTING_SERVICE_URL#https://}"
+  ALLOWED_HOSTS="$EXISTING_HOST"
+  ALLOWED_ORIGINS="https://${EXISTING_HOST}"
+fi
 if [[ -n "$EXTRA_ALLOWED_HOSTS" ]]; then
-  ALLOWED_HOSTS="${ALLOWED_HOSTS},${EXTRA_ALLOWED_HOSTS}"
+  ALLOWED_HOSTS="${ALLOWED_HOSTS:+${ALLOWED_HOSTS},}${EXTRA_ALLOWED_HOSTS}"
 fi
 if [[ -n "$EXTRA_ALLOWED_ORIGINS" ]]; then
-  ALLOWED_ORIGINS="${ALLOWED_ORIGINS},${EXTRA_ALLOWED_ORIGINS}"
+  ALLOWED_ORIGINS="${ALLOWED_ORIGINS:+${ALLOWED_ORIGINS},}${EXTRA_ALLOWED_ORIGINS}"
 fi
 
 echo "==> Deploying $SERVICE_NAME to Cloud Run ($REGION), building from source"
@@ -76,6 +85,27 @@ gcloud run deploy "$SERVICE_NAME" \
 SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" \
   --project "$PROJECT_ID" --region "$REGION" \
   --format 'value(status.url)')
+
+# On the very first deploy, ALLOWED_HOSTS/ALLOWED_ORIGINS above were empty
+# because the service (and its hostname) didn't exist yet. Now that it does,
+# patch them in with the real hostname so this and all future deploys allow
+# requests to the service's own public URL. On subsequent deploys this is a
+# no-op update (same hostname, same value) but harmless.
+ACTUAL_HOST="${SERVICE_URL#https://}"
+FINAL_ALLOWED_HOSTS="$ACTUAL_HOST"
+FINAL_ALLOWED_ORIGINS="https://${ACTUAL_HOST}"
+if [[ -n "$EXTRA_ALLOWED_HOSTS" ]]; then
+  FINAL_ALLOWED_HOSTS="${FINAL_ALLOWED_HOSTS},${EXTRA_ALLOWED_HOSTS}"
+fi
+if [[ -n "$EXTRA_ALLOWED_ORIGINS" ]]; then
+  FINAL_ALLOWED_ORIGINS="${FINAL_ALLOWED_ORIGINS},${EXTRA_ALLOWED_ORIGINS}"
+fi
+if [[ "$FINAL_ALLOWED_HOSTS" != "$ALLOWED_HOSTS" ]]; then
+  echo "==> Patching ALLOWED_HOSTS/ALLOWED_ORIGINS with the confirmed service hostname"
+  gcloud run services update "$SERVICE_NAME" \
+    --project "$PROJECT_ID" --region "$REGION" \
+    --update-env-vars "ALLOWED_HOSTS=${FINAL_ALLOWED_HOSTS},ALLOWED_ORIGINS=${FINAL_ALLOWED_ORIGINS}"
+fi
 
 echo "==> Done. Service URL:"
 echo "$SERVICE_URL"

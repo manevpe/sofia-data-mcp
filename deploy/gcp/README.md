@@ -37,12 +37,17 @@ This builds the repo's `Dockerfile` via Cloud Build and deploys it with:
 Override any of `GCP_REGION`, `SERVICE_NAME`, `MAX_INSTANCES`, `CPU`,
 `MEMORY` as environment variables before running.
 
-The script also computes Cloud Run's predictable hostname
-(`<service>-<project-number>.<region>.run.app`) and passes it as
+The script also reads back Cloud Run's actual assigned hostname (its exact
+`status.url`, whatever form Cloud Run gives it — this can be a hashed alias
+like `<service>-<hash>-<region-code>.a.run.app` rather than a
+`<service>-<project-number>.<region>.run.app` form) and passes it as
 `ALLOWED_HOSTS`/`ALLOWED_ORIGINS`, since the server's own DNS-rebinding
-and CORS protection otherwise rejects requests to its own public URL. If
-you map a custom domain to the service, add it via `EXTRA_ALLOWED_HOSTS`
-and `EXTRA_ALLOWED_ORIGINS` (comma-separated) before running.
+and CORS protection otherwise rejects requests to its own public URL. On
+the very first deploy the hostname isn't known until after the initial
+`gcloud run deploy` call, so the script follows up with a `services update`
+to patch it in once the URL is confirmed. If you map a custom domain to the
+service, add it via `EXTRA_ALLOWED_HOSTS` and `EXTRA_ALLOWED_ORIGINS`
+(comma-separated) before running.
 
 ## 2. Set up the budget kill-switch
 
