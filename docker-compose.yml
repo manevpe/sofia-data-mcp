@@ -1,0 +1,16 @@
+services:
+  sofia-data-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      SOFIA_CKAN_BASE_URL: https://urbandata.sofia.bg
+      HOST: 0.0.0.0
+      PORT: 3000
+      MCP_HTTP_PATH: /mcp
+      REQUEST_TIMEOUT_MS: 30000
+      PREVIEW_MAX_BYTES: 262144
+      MAX_SEARCH_RESULTS: 50
+      CACHE_TTL_MS: 300000
