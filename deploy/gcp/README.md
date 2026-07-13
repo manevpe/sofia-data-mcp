@@ -55,15 +55,37 @@ export GCP_BILLING_ACCOUNT_ID=XXXXXX-XXXXXX-XXXXXX   # gcloud billing accounts l
 This wires together:
 
 1. A Pub/Sub topic that receives budget notifications.
-2. IAM grant so the billing account's service agent can publish to it.
-3. A 2nd-gen Cloud Function (`deploy/gcp/budget-guard`) subscribed to that
+2. A 2nd-gen Cloud Function (`deploy/gcp/budget-guard`) subscribed to that
    topic — see [`budget-guard/index.js`](budget-guard/index.js). When it
    receives a notification where `costAmount >= budgetAmount`, it calls the
    Cloud Run Admin API to set `maxInstanceCount` to `0` on the service,
    immediately stopping it from serving any traffic.
-4. A Billing Budget of `$2` (override with `BUDGET_AMOUNT`/`BUDGET_CURRENCY`)
+3. A Billing Budget of `$2` (override with `BUDGET_AMOUNT`/`BUDGET_CURRENCY`)
    with alert thresholds at 50%, 90%, and 100% of spend, notifying the
    Pub/Sub topic.
+
+### Required manual step: connect the topic in the Console
+
+Cloud Billing Budgets publishes notifications using an internal Google
+identity (you'll see it referenced online as
+`billing-budget-alert@system.gserviceaccount.com`, among other inconsistent
+names) that is **not** a normal, directly-bindable IAM principal. Running
+`gcloud pubsub topics add-iam-policy-binding` against it always fails with
+`Service account ... does not exist`, regardless of which name you try — this
+was confirmed against real production deployments, so the script does not
+attempt it. The publish permission is only ever granted automatically, behind
+the scenes, when you connect the Pub/Sub topic to the budget through the
+**Cloud Console UI**:
+
+1. Open `Billing > Budgets & alerts` for the billing account, and select the
+   budget the script created (`<service>-budget`).
+2. Go to **Manage notifications** > **Connect a Pub/Sub topic**.
+3. Select this project and the `sofia-data-mcp-budget-alerts` topic (even if
+   it already looks selected from the `--notifications-rule-pubsub-topic`
+   flag used at creation), then **Save**.
+
+Skipping this step means the budget's alerts will silently never reach the
+topic or the Cloud Function, so the kill-switch will not fire.
 
 ## 3. Restoring service after a shutdown
 

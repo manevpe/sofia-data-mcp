@@ -42,17 +42,17 @@ echo "==> Creating Pub/Sub topic for budget notifications (idempotent)"
 gcloud pubsub topics create "$TOPIC_NAME" --project "$PROJECT_ID" 2>/dev/null || \
   echo "    Topic already exists, continuing."
 
-# Cloud Billing Budgets publishes notification messages using a single,
-# fixed Google-managed system service account (the same for every GCP
-# customer) — not an account derived from your specific billing account
-# number. It needs explicit publish rights on the topic or notifications
-# will silently fail to be delivered.
-BILLING_SERVICE_AGENT="cloud-billing-budgets@system.gserviceaccount.com"
-echo "==> Granting the Cloud Billing Budgets service agent (${BILLING_SERVICE_AGENT}) publish rights on the topic"
-gcloud pubsub topics add-iam-policy-binding "$TOPIC_NAME" \
-  --project "$PROJECT_ID" \
-  --member "serviceAccount:${BILLING_SERVICE_AGENT}" \
-  --role roles/pubsub.publisher
+# NOTE: Cloud Billing Budgets publishes notifications as an internal Google
+# identity (commonly seen as billing-budget-alert@system.gserviceaccount.com)
+# that is NOT a normal resolvable IAM principal. Attempting to grant it
+# `roles/pubsub.publisher` directly via `gcloud pubsub topics
+# add-iam-policy-binding` always fails with "Service account ... does not
+# exist" — this has been confirmed against real-world deployments, no matter
+# which of the several agent names circulating online you try. The publish
+# grant is only ever applied automatically, behind the scenes, when you
+# connect the Pub/Sub topic to the budget via the Cloud Console "Manage
+# notifications" flow (see the final step printed below). We deliberately do
+# NOT attempt the IAM binding here.
 
 echo "==> Deploying budget-guard Cloud Function"
 gcloud functions deploy "$FUNCTION_NAME" \
@@ -87,7 +87,19 @@ gcloud billing budgets create \
   --threshold-rule=percent=1.0 \
   --notifications-rule-pubsub-topic "projects/${PROJECT_ID}/topics/${TOPIC_NAME}"
 
+echo "==> IMPORTANT: one manual step remains (Console-only; cannot be scripted)"
+echo "    The budget was created and points at the '${TOPIC_NAME}' topic, but Google"
+echo "    only grants its internal publisher identity permission on the topic when"
+echo "    you (re)connect the topic through the Cloud Console UI. Do this once:"
+echo "      1. https://console.cloud.google.com/billing/${BILLING_ACCOUNT_ID}/budgets?project=${PROJECT_ID}"
+echo "      2. Open '${SERVICE_NAME}-budget' > Manage notifications"
+echo "      3. Under 'Connect a Pub/Sub topic', select project '${PROJECT_ID}' and"
+echo "         topic '${TOPIC_NAME}', then Save (even though it looks already set)."
+echo "    This step is what actually grants the publish permission; skipping it"
+echo "    means budget alerts will silently never reach the topic/function."
+echo ""
 echo "==> Done."
-echo "    Budget alerts >= 100% of \$${BUDGET_AMOUNT} will scale '${SERVICE_NAME}' to 0 instances."
+echo "    Once connected, budget alerts >= 100% of \$${BUDGET_AMOUNT} will scale"
+echo "    '${SERVICE_NAME}' to 0 instances."
 echo "    After spend resets and the issue is investigated, restore service with:"
 echo "      ./deploy/gcp/restore-service.sh"
