@@ -6,7 +6,7 @@ COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
 COPY pnpm-lock.yaml ./pnpm-lock.yaml
 COPY packages ./packages
 
-RUN corepack enable && corepack prepare pnpm@10.8.1 --activate
+RUN npm install -g corepack@latest && corepack enable && corepack prepare pnpm@10.8.1 --activate
 RUN pnpm install --frozen-lockfile
 RUN pnpm build
 
