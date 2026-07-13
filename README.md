@@ -1,6 +1,6 @@
 # Sofia Data MCP
 
-TypeScript MCP server, `stdio` bridge, and CLI client for the Sofia municipality urban data portal at `https://urbandata.sofia.bg`.
+TypeScript MCP server, `stdio` bridge, and CLI client for the Sofia municipality urban data portal at [https://urbandata.sofia.bg](https://urbandata.sofia.bg).
 
 ## Architecture
 
@@ -14,9 +14,7 @@ TypeScript MCP server, `stdio` bridge, and CLI client for the Sofia municipality
 The deployed server is public, requires no auth, and speaks Streamable HTTP
 at:
 
-```text
-https://sofia-data-mcp-423850425424.europe-west1.run.app/mcp
-```
+[https://sofia-data-mcp-oparjiwnqa-ew.a.run.app/mcp](https://sofia-data-mcp-oparjiwnqa-ew.a.run.app/mcp)
 
 ### Clients with native remote/HTTP MCP support (recommended)
 
@@ -28,7 +26,7 @@ your user `mcp.json` via the MCP: Open User Configuration command):
   "servers": {
     "sofia-data": {
       "type": "http",
-      "url": "https://sofia-data-mcp-423850425424.europe-west1.run.app/mcp"
+      "url": "https://sofia-data-mcp-oparjiwnqa-ew.a.run.app/mcp"
     }
   }
 }
@@ -40,7 +38,7 @@ your user `mcp.json` via the MCP: Open User Configuration command):
 {
   "mcpServers": {
     "sofia-data": {
-      "url": "https://sofia-data-mcp-423850425424.europe-west1.run.app/mcp"
+      "url": "https://sofia-data-mcp-oparjiwnqa-ew.a.run.app/mcp"
     }
   }
 }
@@ -60,7 +58,7 @@ adapter (no install/build required, runs via `npx`):
       "args": [
         "-y",
         "mcp-remote",
-        "https://sofia-data-mcp-423850425424.europe-west1.run.app/mcp"
+        "https://sofia-data-mcp-oparjiwnqa-ew.a.run.app/mcp"
       ]
     }
   }
@@ -73,13 +71,13 @@ locally:
 
 ```bash
 pnpm --filter @sofia-data/stdio-bridge dev -- \
-  --upstream-url https://sofia-data-mcp-423850425424.europe-west1.run.app/mcp
+  --upstream-url https://sofia-data-mcp-oparjiwnqa-ew.a.run.app/mcp
 ```
 
 ### Quick smoke test (no client needed)
 
 ```bash
-curl -s https://sofia-data-mcp-423850425424.europe-west1.run.app/health
+curl -s https://sofia-data-mcp-oparjiwnqa-ew.a.run.app/health
 ```
 
 ## Packages
@@ -157,7 +155,7 @@ which spin up a local in-process server. It's skipped automatically (not
 failed) when no target is given, so it never affects normal `pnpm test`/CI:
 
 ```bash
-E2E_BASE_URL=https://sofia-data-mcp-423850425424.europe-west1.run.app pnpm test:e2e
+E2E_BASE_URL=https://sofia-data-mcp-oparjiwnqa-ew.a.run.app pnpm test:e2e
 ```
 
 This also runs automatically as a post-deploy gate in
