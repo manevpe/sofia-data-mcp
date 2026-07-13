@@ -5,7 +5,7 @@
   "description": "Cloud Function triggered by GCP budget alerts; scales the Sofia Data MCP Cloud Run service to zero when the budget is exceeded.",
   "main": "index.js",
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "dependencies": {
     "google-auth-library": "^9.14.1"

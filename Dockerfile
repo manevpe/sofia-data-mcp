@@ -1,4 +1,4 @@
-FROM node:20-alpine AS build
+FROM node:24-alpine AS build
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ RUN corepack enable && corepack prepare pnpm@10.8.1 --activate
 RUN pnpm install --frozen-lockfile
 RUN pnpm build
 
-FROM node:20-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 

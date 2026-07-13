@@ -91,7 +91,7 @@ curl -s https://sofia-data-mcp-423850425424.europe-west1.run.app/health
 
 ## Requirements
 
-- Node.js 20+
+- Node.js 24+
 - Corepack available
 
 ## Install

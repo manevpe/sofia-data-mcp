@@ -58,7 +58,7 @@ echo "==> Deploying budget-guard Cloud Function"
 gcloud functions deploy "$FUNCTION_NAME" \
   --project "$PROJECT_ID" \
   --region "$REGION" \
-  --runtime nodejs20 \
+  --runtime nodejs24 \
   --source "$REPO_ROOT/deploy/gcp/budget-guard" \
   --entry-point budgetGuard \
   --trigger-topic "$TOPIC_NAME" \
