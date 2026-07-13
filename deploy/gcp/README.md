@@ -88,7 +88,7 @@ This creates a Workload Identity Pool + OIDC provider trusting GitHub's
 token issuer (restricted to the `manevpe/sofia-data-mcp` repo only), a
 dedicated deploy service account with the minimum roles (`run.admin`,
 `cloudbuild.builds.editor`, `iam.serviceAccountUser`, `storage.admin`,
-`serviceusage.serviceUsageAdmin`), and
+`serviceusage.serviceUsageAdmin`, `artifactregistry.admin`), and
 an IAM binding letting that repo's workflows impersonate the service
 account — but only via short-lived tokens minted per workflow run.
 

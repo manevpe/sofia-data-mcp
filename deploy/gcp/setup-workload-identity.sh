@@ -65,7 +65,7 @@ gcloud iam service-accounts create "$DEPLOY_SA_NAME" \
   echo "    Service account already exists, continuing."
 
 echo "==> Granting the deploy service account the minimum roles needed to build & deploy"
-for ROLE in roles/run.admin roles/cloudbuild.builds.editor roles/iam.serviceAccountUser roles/storage.admin roles/serviceusage.serviceUsageAdmin; do
+for ROLE in roles/run.admin roles/cloudbuild.builds.editor roles/iam.serviceAccountUser roles/storage.admin roles/serviceusage.serviceUsageAdmin roles/artifactregistry.admin; do
   gcloud projects add-iam-policy-binding "$PROJECT_ID" \
     --member "serviceAccount:${DEPLOY_SA_EMAIL}" \
     --role "$ROLE" \
