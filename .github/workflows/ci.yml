@@ -13,32 +13,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: ".nvmrc"
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Prepare pnpm
-        run: corepack prepare pnpm@10.8.1 --activate
-
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup pnpm environment
+        uses: ./.github/actions/setup-pnpm
 
       - name: Build
         run: pnpm build
@@ -56,42 +32,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: ".nvmrc"
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Prepare pnpm
-        run: corepack prepare pnpm@10.8.1 --activate
-
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup pnpm environment
+        uses: ./.github/actions/setup-pnpm
 
       - name: Build e2e package
         run: pnpm --filter @sofia-data/e2e build
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       # Builds the PR's own Dockerfile/code (not a deployed environment), so
       # this job needs no GCP credentials and is safe to run on PRs from
       # forks. It exercises the exact same image that would ship to Cloud
-      # Run, just running locally in the runner instead.
+      # Run, just running locally in the runner instead. GHA cache speeds up
+      # rebuilds of the pnpm install/build layers across CI runs.
       - name: Build container image
-        run: docker build -t sofia-data-mcp:pr-e2e .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: sofia-data-mcp:pr-e2e
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Run container
         run: |

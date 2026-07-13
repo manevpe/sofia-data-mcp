@@ -1,0 +1,39 @@
+name: Setup pnpm environment
+description: >
+  Sets up Node.js (from .nvmrc), enables Corepack, prepares the pinned pnpm
+  version, restores the pnpm store cache, and runs `pnpm install
+  --frozen-lockfile`. Shared by every job in ci.yml/deploy.yml that needs to
+  run pnpm commands, so the setup only has to be maintained in one place.
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: ".nvmrc"
+
+    - name: Enable Corepack
+      shell: bash
+      run: corepack enable
+
+    - name: Prepare pnpm
+      shell: bash
+      run: corepack prepare pnpm@10.8.1 --activate
+
+    - name: Get pnpm store directory
+      id: pnpm-cache
+      shell: bash
+      run: echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+    - name: Cache pnpm store
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
