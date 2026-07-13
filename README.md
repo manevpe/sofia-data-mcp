@@ -137,6 +137,15 @@ pnpm test
 CI runs `pnpm build`, `pnpm check` (typecheck), and `pnpm test` on every push/PR to `main`
 (see `.github/workflows/ci.yml`).
 
+## Automated dependency updates
+
+Dependabot (`.github/dependabot.yml`) checks weekly for updates to npm/pnpm packages,
+GitHub Actions, and the Docker base image, grouping patch/minor updates into a single PR
+per ecosystem. `.github/workflows/dependabot-auto-merge.yml` automatically approves and
+enables auto-merge for patch/minor version PRs; the merge only completes once the
+required `build-and-test` CI check passes on that PR (enforced by branch protection on
+`main`). Major version bumps are left for manual review.
+
 ## Notes
 
 - Technical naming is English-only.
