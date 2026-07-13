@@ -29,7 +29,7 @@ EXTRA_ALLOWED_ORIGINS="${EXTRA_ALLOWED_ORIGINS:-}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 echo "==> Enabling required APIs (idempotent)"
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com cloudresourcemanager.googleapis.com \
   --project "$PROJECT_ID"
 
 # Cloud Run's stable, predictable hostname is
