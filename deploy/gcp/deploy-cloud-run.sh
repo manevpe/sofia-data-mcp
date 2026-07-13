@@ -51,6 +51,15 @@ if [[ -n "$EXTRA_ALLOWED_ORIGINS" ]]; then
 fi
 
 echo "==> Deploying $SERVICE_NAME to Cloud Run ($REGION), building from source"
+
+# Capture the revision currently serving traffic *before* this deploy, so a
+# failed post-deploy smoke test can roll back to it. Empty on the very first
+# deploy (service doesn't exist yet), which is fine — there's nothing to roll
+# back to in that case.
+PREVIOUS_REVISION=$(gcloud run services describe "$SERVICE_NAME" \
+  --project "$PROJECT_ID" --region "$REGION" \
+  --format 'value(status.latestReadyRevisionName)' 2>/dev/null || echo "")
+
 gcloud run deploy "$SERVICE_NAME" \
   --project "$PROJECT_ID" \
   --region "$REGION" \
@@ -71,8 +80,10 @@ SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" \
 echo "==> Done. Service URL:"
 echo "$SERVICE_URL"
 
-# Expose the URL to subsequent GitHub Actions steps (e.g. a post-deploy e2e
-# smoke test), if running in that context. No-op locally.
+# Expose outputs to subsequent GitHub Actions steps (e.g. a post-deploy e2e
+# smoke test, or a rollback step on failure), if running in that context.
+# No-op locally.
 if [ -n "${GITHUB_OUTPUT:-}" ]; then
   echo "service_url=$SERVICE_URL" >> "$GITHUB_OUTPUT"
+  echo "previous_revision=$PREVIOUS_REVISION" >> "$GITHUB_OUTPUT"
 fi

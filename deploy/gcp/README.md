@@ -98,7 +98,28 @@ export GCP_PROJECT_ID=my-project
 ./deploy/gcp/restore-service.sh
 ```
 
-## 4. Automated deploys via GitHub Actions
+## 4. Automatic rollback on a failed post-deploy smoke test
+
+`deploy-cloud-run.sh` records the revision serving traffic *before* each
+deploy and exposes it as a `previous_revision` output. In
+`.github/workflows/deploy.yml`, if the post-deploy e2e smoke test
+(`pnpm test:e2e`, from `packages/e2e`, run against the just-deployed URL)
+fails, a subsequent step automatically shifts 100% of traffic back to that
+previous revision using `deploy/gcp/rollback-service.sh`:
+
+```bash
+export GCP_PROJECT_ID=my-project
+export PREVIOUS_REVISION=sofia-data-mcp-00042-abc
+./deploy/gcp/rollback-service.sh
+```
+
+The bad revision is **not** deleted — it stays deployed (just not receiving
+traffic) so it can be inspected via `gcloud run revisions describe` or the
+Cloud Console. On the very first deploy of a service there is no previous
+revision to roll back to; in that case the workflow fails loudly instead
+and requires manual investigation.
+
+## 5. Automated deploys via GitHub Actions
 
 Deploys run from `.github/workflows/deploy.yml`, triggered automatically once
 the `CI` workflow succeeds on `main` (build/typecheck/test must pass first),

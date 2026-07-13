@@ -61,6 +61,22 @@ jobs:
         run: pnpm --filter @sofia-data/e2e build
 
       - name: Run post-deploy e2e smoke test
+        id: e2e
         env:
           E2E_BASE_URL: ${{ steps.deploy.outputs.service_url }}
         run: pnpm test:e2e
+
+      - name: Roll back to previous revision on e2e failure
+        if: ${{ failure() && steps.e2e.outcome == 'failure' && steps.deploy.outputs.previous_revision != '' }}
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ vars.GCP_REGION || 'europe-west1' }}
+          SERVICE_NAME: ${{ vars.SERVICE_NAME || 'sofia-data-mcp' }}
+          PREVIOUS_REVISION: ${{ steps.deploy.outputs.previous_revision }}
+        run: ./deploy/gcp/rollback-service.sh
+
+      - name: No previous revision to roll back to
+        if: ${{ failure() && steps.e2e.outcome == 'failure' && steps.deploy.outputs.previous_revision == '' }}
+        run: |
+          echo "::error::e2e smoke test failed on the first-ever deploy of this service — there is no previous revision to roll back to. Manual investigation required."
+          exit 1
