@@ -14,7 +14,7 @@
     "test": "node --test dist/*.test.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.17.4",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@sofia-data/core": "workspace:*",
     "zod": "^4.4.3"
   }
